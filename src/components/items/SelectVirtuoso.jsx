@@ -208,6 +208,7 @@ const Drop = ({
   return (
     <div className="select__drop">
       <Virtuoso
+        className="select__virtuoso"
         data={listOptions}
         totalCount={listOptions.length}
         itemContent={(index, a) => (
