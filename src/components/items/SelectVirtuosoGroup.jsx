@@ -59,6 +59,29 @@ const SelectVirtuosoGroup = ({
     setDataSet(newDataSet);
   };
 
+  const closeOnBlur = React.useCallback((e) => {
+    const maxDepth = 10;
+    const className = "select";
+    let parentElement = e.target;
+    let outBox = true;
+    for (let index = 0; index < maxDepth; index++) {
+      parentElement = parentElement?.parentElement;
+      if (!parentElement || parentElement.classList?.length === 0) continue;
+      if (parentElement.parentElement.classList.contains(className)) {
+        outBox = false;
+        break;
+      }
+    }
+
+    if (outBox) setActive(false);
+  }, []);
+
+  useEffect(() => {
+    if (isActive) document.addEventListener("click", closeOnBlur);
+    else document.removeEventListener("click", closeOnBlur);
+    return () => document.removeEventListener("click", closeOnBlur);
+  }, [isActive]);
+
   useEffect(() => {
     const newData = data.map((element, parentIndex) => {
       let newElement = { ...element };
@@ -71,16 +94,18 @@ const SelectVirtuosoGroup = ({
     });
     setDataSet(newData);
   }, [data]);
+
   useEffect(() => {
     if (isActive && selected.length === 0) {
       setActive(false);
       setValue("");
     }
   }, [selected]);
+
   useEffect(() => {
     if (value && value !== "") setActive(true);
     else setActive(false);
-  }, [isFocused, value]);
+  }, [value]);
 
   return (
     <div className={`select ${isActive ? "active" : ""}`} ref={selectRef}>

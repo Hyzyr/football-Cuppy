@@ -62,6 +62,29 @@ const SelectVirtuoso = ({
       return newDataSet;
     });
 
+  const closeOnBlur = React.useCallback((e) => {
+    const maxDepth = 10;
+    const className = "select";
+    let parentElement = e.target;
+    let outBox = true;
+    for (let index = 0; index < maxDepth; index++) {
+      parentElement = parentElement?.parentElement;
+      if (!parentElement || parentElement.classList?.length === 0) continue;
+      if (parentElement.parentElement.classList.contains(className)) {
+        outBox = false;
+        break;
+      }
+    }
+
+    if (outBox) setActive(false);
+  }, []);
+
+  useEffect(() => {
+    if (isActive) document.addEventListener("click", closeOnBlur);
+    else document.removeEventListener("click", closeOnBlur);
+    return () => document.removeEventListener("click", closeOnBlur);
+  }, [isActive]);
+
   useEffect(() => {
     const newData = data.map((element, optionIndex) => ({
       ...element,
