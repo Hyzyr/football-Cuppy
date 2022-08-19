@@ -7,7 +7,11 @@ const SelectVirtuoso = ({
   isMulti = true,
   closeMenuOnSelect = false,
   hideSelectedOptions = false,
+  closeAfterSelect = true,
   customLabel = null,
+  itemHeight = 40,
+  maxHeight = "40vh",
+  closeIfEmpty = false,
 }) => {
   const selectRef = useRef(null);
   const [isActive, setActive] = useState(false);
@@ -18,15 +22,25 @@ const SelectVirtuoso = ({
 
   const onChange = (e) => setValue(e.target.value);
   const onFocus = () => setFocused(true);
-  const onBlur = () => setFocused(false);
-  const clearValue = () => setValue("");
-  const toggleActive = () => setActive(!isActive);
+  const onBlur = () => {
+    if (value === "") setFocused(false);
+  };
+  const toggleActive = () => {
+    setActive(!isActive);
+  };
+  const clearValue = () => {
+    clearSelected();
+    clearState();
+  };
   const hasSelected = React.useMemo(
     () => selected && selected.length > 0,
     [selected]
   );
   const addItem = (data) => {
-    if (closeMenuOnSelect) clearState();
+    if (closeMenuOnSelect) {
+      clearState();
+      if (value !== "" && closeAfterSelect) setValue("");
+    }
 
     if (!isMulti) {
       let prevSelected = hasSelected ? selected[0] : null;
@@ -47,43 +61,67 @@ const SelectVirtuoso = ({
     setFocused(false);
     setValue("");
   };
+  const clearSelected = () => {
+    let newDataSet = [...dataSet];
+
+    selected.forEach((item) => {
+      newDataSet[item.optionIndex].selected = false;
+    });
+    setDataSet(newDataSet);
+    setSelected([]);
+  };
   const deleteItem = (data) => {
-    setSelected(selected.filter((item) => item?.value !== data?.value));
+    setSelected(selected.filter((item) => !isSameItem(item, data)));
     updateOption(data.optionIndex, { selected: false });
   };
-  const updateOption = (optionIndex, data) =>
+  const updateOption = (optionIndex, data) => {
     setDataSet((set) => {
       let newDataSet = [...set];
-
       newDataSet[optionIndex] = {
         ...newDataSet[optionIndex],
         ...data,
       };
       return newDataSet;
     });
+  };
+  const isSameItem = (item1, item2) =>
+    item1.parentIndex === item2.parentIndex && item1.value === item2.value;
 
-  const closeOnBlur = React.useCallback((e) => {
-    const maxDepth = 10;
-    const className = "select";
-    let parentElement = e.target;
-    let outBox = true;
-    for (let index = 0; index < maxDepth; index++) {
-      parentElement = parentElement?.parentElement;
-      if (!parentElement || parentElement.classList?.length === 0) continue;
-      if (parentElement.parentElement.classList.contains(className)) {
-        outBox = false;
-        break;
+  const closeOnBlur = React.useCallback(
+    (e) => {
+      const maxDepth = 10;
+      const isClosable = value === "";
+
+      let parentElement = e.target ?? e.srcElement;
+      let outBox = true;
+      for (let index = 0; index < maxDepth; index++) {
+        parentElement = parentElement?.parentElement;
+        if (!parentElement) {
+          break;
+        } else if (parentElement.classList?.length === 0) continue;
+        else if (parentElement === selectRef.current) {
+          outBox = false;
+          break;
+        }
       }
-    }
-
-    if (outBox) setActive(false);
-  }, []);
+      if (outBox && isClosable) {
+        setActive(false);
+      }
+    },
+    [value]
+  );
 
   useEffect(() => {
-    if (isActive) document.addEventListener("click", closeOnBlur);
-    else document.removeEventListener("click", closeOnBlur);
-    return () => document.removeEventListener("click", closeOnBlur);
-  }, [isActive]);
+    if (isActive) {
+      document.addEventListener("click", closeOnBlur);
+    } else {
+      document.removeEventListener("click", closeOnBlur);
+    }
+
+    return () => {
+      document.removeEventListener("click", closeOnBlur);
+    };
+  }, [isActive, closeOnBlur]);
 
   useEffect(() => {
     const newData = data.map((element, optionIndex) => ({
@@ -94,16 +132,20 @@ const SelectVirtuoso = ({
   }, [data]);
 
   useEffect(() => {
-    if (isActive && selected.length === 0) {
+    if (isActive && selected.length === 0 && closeIfEmpty) {
       setActive(false);
       setValue("");
     }
-  }, [selected]);
+    // eslint-disable-next-line
+  }, [selected, closeIfEmpty]);
 
   useEffect(() => {
     if (value && value !== "") setActive(true);
-    else setActive(false);
-  }, [isFocused, value]);
+  }, [value]);
+
+  const deleteWithDelay = (data) => () => {
+    setTimeout(() => deleteItem(data), 10);
+  };
 
   return (
     <div className={`select ${isActive ? "active" : ""}`} ref={selectRef}>
@@ -114,7 +156,7 @@ const SelectVirtuoso = ({
               <Item
                 key={item.value ?? i}
                 title={item.label}
-                deleteFunc={() => deleteItem(item)}
+                deleteFunc={deleteWithDelay(item)}
               />
             ) : (
               <React.Fragment key={item.value}>
@@ -127,7 +169,7 @@ const SelectVirtuoso = ({
           <div className="select__box-input">
             <input
               type="text"
-              placeholder={placeholder}
+              placeholder={!hasSelected ? placeholder : ""}
               value={value}
               onChange={onChange}
               onFocus={onFocus}
@@ -135,7 +177,7 @@ const SelectVirtuoso = ({
             />
           </div>
         )}
-        {value !== "" && (
+        {(value !== "" || hasSelected) && (
           <button
             type="button"
             className="select__box-clear"
@@ -152,17 +194,22 @@ const SelectVirtuoso = ({
           <span className="custIcon custIcon--bottom"></span>
         </button>
       </div>
-      <Drop
-        valueState={[value, setValue]}
-        data={dataSet}
-        hasSelected={hasSelected}
-        setSelected={setSelected}
-        hideSelectedOptions={hideSelectedOptions}
-        setActive={setActive}
-        isMulti={isMulti}
-        addItem={addItem}
-        deleteItem={deleteItem}
-      />
+      {isActive && (
+        <Drop
+          valueState={[value, setValue]}
+          data={dataSet}
+          hasSelected={hasSelected}
+          setSelected={setSelected}
+          hideSelectedOptions={hideSelectedOptions}
+          setActive={setActive}
+          isMulti={isMulti}
+          addItem={addItem}
+          deleteItem={deleteItem}
+          itemHeight={itemHeight}
+          maxHeight={maxHeight}
+          selectRef={selectRef}
+        />
+      )}
     </div>
   );
 };
@@ -175,6 +222,7 @@ const Item = ({ title, deleteFunc }) => (
     </button>
   </div>
 );
+
 const Drop = ({
   data,
   valueState,
@@ -182,10 +230,27 @@ const Drop = ({
   deleteItem,
   hasSelected,
   hideSelectedOptions,
+  itemHeight,
+  maxHeight,
+  selectRef,
 }) => {
-  const [value, setValue] = valueState;
+  const [value] = valueState;
   const [listOptions, setListOptions] = useState(null);
+  const [hoverItem, setHoverItem] = useState(null);
 
+  const updateOptions = (index, data) => {
+    let newData = null;
+    setListOptions((set) => {
+      let newDataSet = [...set];
+      newDataSet[index] = {
+        ...newDataSet[index],
+        ...data,
+      };
+      newData = newDataSet[index];
+      return newDataSet;
+    });
+    return newData;
+  };
   const updateList = () => {
     if (!data) return;
     const options = [];
@@ -194,11 +259,13 @@ const Drop = ({
       if (hasSelected && hideSelectedOptions && element?.selected) {
         continue;
       }
+
       options.push(element);
     }
+
     if (options.length > 0) {
       setListOptions(options);
-    }
+    } else setListOptions([]);
   };
   const searchList = () => {
     if (value && value !== "") {
@@ -218,18 +285,112 @@ const Drop = ({
     }
   };
 
+  const dropStyle = React.useMemo(() => {
+    if (!listOptions) return {};
+    let style = {
+      maxHeight: maxHeight,
+    };
+    if (listOptions.length < 15) style.height = listOptions.length * itemHeight;
+
+    return style;
+  }, [listOptions, maxHeight, itemHeight]);
+  const keyPressFunc = React.useCallback(
+    (event) => {
+      let index = hoverItem && hoverItem[0] ? hoverItem[0] : 0;
+      let data = listOptions ? listOptions[index] : null;
+
+      if (listOptions.length > 0)
+        keypress(event, [
+          // enter key pressed
+          () => {
+            addItem(data);
+          },
+          // up key pressed
+          () => {
+            if (hoverItem === null) {
+              let newData = updateOptions(index, {
+                hover: true,
+              });
+              setHoverItem([index, newData]);
+              document.removeEventListener("keydown", keyPressFunc);
+              scrollFunc(-1 * itemHeight);
+            } else if (index !== 0) {
+              updateOptions(index, { hover: false });
+              let newData = updateOptions(index - 1, {
+                hover: true,
+              });
+              setHoverItem([index - 1, newData]);
+              document.removeEventListener("keydown", keyPressFunc);
+              scrollFunc(-1 * itemHeight);
+            }
+          },
+          // down key pressed
+          () => {
+            if (hoverItem === null) {
+              let newData = updateOptions(index, {
+                hover: true,
+              });
+              setHoverItem([index, newData]);
+              document.removeEventListener("keydown", keyPressFunc);
+              scrollFunc(itemHeight);
+            } else if (index < listOptions.length - 1) {
+              updateOptions(index, { hover: false });
+              let newData = updateOptions(index + 1, {
+                hover: true,
+              });
+              setHoverItem([index + 1, newData]);
+              document.removeEventListener("keydown", keyPressFunc);
+              scrollFunc(itemHeight);
+            }
+          },
+        ]);
+    },
+    // eslint-disable-next-line
+    [hoverItem, listOptions?.length]
+  );
+
+  const scrollFunc = (addPixels) => {
+    if (!selectRef.current) return;
+    const dropRef = selectRef.current.querySelector(".select__virtuoso");
+    if (!dropRef) return;
+    const hoverItemRef = dropRef.querySelector(".select__drop-option.hover");
+    if (!hoverItemRef) return;
+
+    dropRef.scrollTop = hoverItemRef?.offsetTop + addPixels;
+  };
+
+  useEffect(() => {
+    document.addEventListener("keydown", keyPressFunc);
+
+    return () => {
+      document.removeEventListener("keydown", keyPressFunc);
+    };
+  }, [keyPressFunc]);
+
   useEffect(() => {
     updateList();
+    // eslint-disable-next-line
   }, [data]);
 
   useEffect(() => {
     searchList();
-  }, [value, data]);
+    // eslint-disable-next-line
+  }, [value]);
 
-  if (!listOptions) return <div className="select__drop"></div>;
+  useEffect(() => {
+    setHoverItem(null);
+    // eslint-disable-next-line
+  }, [value]);
+
+  if (!listOptions || listOptions.length === 0)
+    return (
+      <div className="select__drop select__drop--empty">
+        <div className="select__drop-empty">No options</div>
+      </div>
+    );
 
   return (
-    <div className="select__drop">
+    <div className="select__drop" style={dropStyle}>
       <Virtuoso
         className="select__virtuoso"
         data={listOptions}
@@ -245,6 +406,7 @@ const Drop = ({
     </div>
   );
 };
+
 const DropItem = ({ data, addOption, removeOption }) => {
   const onClick = () => {
     if (data.selected) removeOption(data);
@@ -252,12 +414,32 @@ const DropItem = ({ data, addOption, removeOption }) => {
   };
   return (
     <div
-      className={`select__drop-option ${data.selected ? "active" : ""}`}
+      className={`select__drop-option dropItem ${
+        data.selected ? "active" : ""
+      }  ${data.hover ? "hover" : ""}`}
       onClick={onClick}
     >
       {data?.label}
     </div>
   );
+};
+
+export const keypress = (event, functionsArray) => {
+  const [enterFunc, upFunc, downFunc] = functionsArray;
+
+  switch (event.keyCode) {
+    case 13:
+      enterFunc();
+      break;
+    case 38:
+      upFunc();
+      break;
+    case 40:
+      downFunc();
+      break;
+    default:
+      break;
+  }
 };
 
 export default SelectVirtuoso;

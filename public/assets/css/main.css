@@ -392,7 +392,7 @@ li {
 
 .wrapper {
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
   min-height: 90vh;
 }
 .wrapper__bg {
@@ -1040,6 +1040,7 @@ li {
 }
 .form__column {
   width: calc(50% - 5px);
+  margin: 5px 0;
 }
 
 .select {
@@ -1065,6 +1066,9 @@ li {
   width: 100%;
   -webkit-transition: border-color 0.2s ease-out;
   transition: border-color 0.2s ease-out;
+}
+.select__box:hover {
+  border-color: #c4c4c4;
 }
 .select__box.focused {
   border-color: #3ba0f2;
@@ -1205,11 +1209,13 @@ li {
           animation: fadeIn 0.4s ease;
 }
 .select__drop {
+  display: none;
   position: absolute;
   top: calc(100% + 2px);
   left: 0;
   width: 100%;
-  height: 400px;
+  height: 40vh;
+  max-height: 400px;
   max-height: 0;
   overflow: hidden;
   background: #ffffff;
@@ -1219,8 +1225,13 @@ li {
   padding: 0;
   opacity: 0.8;
   z-index: 1;
-  -webkit-transition: 0.3s ease-in;
-  transition: 0.3s ease-in;
+  -webkit-animation: 0.2s ease-in fadeInUpSmall;
+          animation: 0.2s ease-in fadeInUpSmall;
+  -webkit-animation-fill-mode: backwards;
+          animation-fill-mode: backwards;
+}
+.select__drop--empty {
+  height: unset !important;
 }
 .select__drop-title {
   color: rgba(29, 53, 87, 0.5);
@@ -1237,6 +1248,23 @@ li {
 .select__virtuoso > div:last-child .select__drop-title {
   border-top: unset;
 }
+.select__drop-empty {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+  color: #d6d5d4;
+  font-family: "Nunito", "Roboto", sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 1.37;
+}
 .select__drop-option {
   position: relative;
   cursor: pointer;
@@ -1250,9 +1278,6 @@ li {
   border-bottom: 1px solid rgba(29, 53, 87, 0.1);
   -webkit-transition: 0.2s ease;
   transition: 0.2s ease;
-}
-.select__drop-option:last-child {
-  border-bottom: 0;
 }
 .select__drop-option:before, .select__drop-option:after {
   content: "";
@@ -1285,6 +1310,12 @@ li {
 .select__drop-option:hover:before {
   border-color: rgba(59, 160, 242, 0.5);
 }
+.select__drop-option.hover {
+  background: rgba(214, 213, 212, 0.2);
+}
+.select__drop-option.hover:before {
+  border-color: rgba(59, 160, 242, 0.5);
+}
 .select__drop-option.active {
   background: rgba(59, 160, 242, 0.1);
 }
@@ -1294,6 +1325,9 @@ li {
 }
 .select__drop-option.active:after {
   border-color: #ffffff;
+}
+[data-test-id=virtuoso-item-list] > div:last-child .select__drop-option {
+  border-bottom: 1px solid transparent;
 }
 .select__virtuoso {
   /* Track */
@@ -1325,9 +1359,13 @@ li {
           transform: translateY(-50%) rotateX(180deg);
 }
 .select.active .select__drop {
+  display: block;
   max-height: 40vh;
   padding: 8px 0;
   opacity: 1;
+}
+.select--group .select__drop-option {
+  border-bottom: 1px solid transparent;
 }
 
 .header {

@@ -99,7 +99,7 @@
 
 .wrapper {
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
   min-height: 90vh;
 
   &__bg {
@@ -686,6 +686,7 @@
   }
   &__column {
     width: calc(50% - 5px);
+    margin: 5px 0;
   }
 }
 .select {
@@ -704,9 +705,14 @@
     padding: 4px 50px 4px 8px;
     width: 100%;
     transition: border-color 0.2s ease-out;
+    &:hover {
+      border-color: $gray-1;
+    }
+
     &.focused {
       border-color: $primary;
     }
+
     &-selected {
       cursor: default;
       position: relative;
@@ -818,11 +824,13 @@
     }
   }
   &__drop {
+    display: none;
     position: absolute;
     top: calc(100% + 2px);
     left: 0;
     width: 100%;
-    height: 400px;
+    height: 40vh;
+    max-height: 400px;
     max-height: 0;
     overflow: hidden;
     background: #ffffff;
@@ -831,7 +839,12 @@
     padding: 0;
     opacity: 0.8;
     z-index: 1;
-    transition: 0.3s ease-in;
+    animation: 0.2s ease-in fadeInUpSmall;
+    animation-fill-mode: backwards;
+
+    &--empty {
+      height: unset !important;
+    }
 
     &-title {
       color: rgba($black, 0.5);
@@ -849,6 +862,18 @@
       }
     }
 
+    &-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      color: $gray;
+      font-family: $font-main;
+      font-style: normal;
+      font-weight: 500;
+      font-size: 16px;
+      line-height: 1.37;
+    }
     &-option {
       position: relative;
       cursor: pointer;
@@ -862,9 +887,7 @@
       padding: 8px 16px 8px 40px;
       border-bottom: 1px solid rgba($black, 0.1);
       transition: 0.2s ease;
-      &:last-child {
-        border-bottom: 0;
-      }
+
       &:before,
       &:after {
         content: "";
@@ -896,6 +919,12 @@
           border-color: rgba($primary, 0.5);
         }
       }
+      &.hover {
+        background: rgba($gray, 0.2);
+        &:before {
+          border-color: rgba($primary, 0.5);
+        }
+      }
       &.active {
         background: rgba($primary, 0.1);
         &:before {
@@ -905,6 +934,10 @@
         &:after {
           border-color: $white;
         }
+      }
+
+      [data-test-id="virtuoso-item-list"] > div:last-child & {
+        border-bottom: 1px solid transparent;
       }
     }
   }
@@ -922,10 +955,17 @@
         }
       }
       &__drop {
+        display: block;
         max-height: 40vh;
         padding: 8px 0;
         opacity: 1;
       }
+    }
+  }
+
+  &--group {
+    .select__drop-option {
+      border-bottom: 1px solid transparent;
     }
   }
 }
